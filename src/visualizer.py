@@ -111,9 +111,6 @@ if __name__ == "__main__":
     tables = run()
     print(tables["top10"])
 
-
-from __future__ import annotations
-
 import os
 
 import matplotlib
