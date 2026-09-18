@@ -112,7 +112,7 @@ if __name__ == "__main__":
     print(tables["top10"])
 
 
-from __future__ import annotations
+
 
 import os
 
