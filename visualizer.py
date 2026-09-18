@@ -97,3 +97,31 @@ def run(df: pd.DataFrame | None = None, output_dir: str | None = None) -> dict:
 if __name__ == "__main__":
     tables = run()
     print(tables["top10"])
+
+
+from __future__ import annotations
+
+import os
+
+import matplotlib
+matplotlib.use("Agg") 
+import matplotlib.pyplot as plt
+import pandas as pd
+
+try:
+    import seaborn as sns
+except ImportError:
+    sns = None
+    print(
+        "[visualizer.py] seaborn not installed - heatmap.png will fall back "
+        "to matplotlib's imshow(). Run `pip install seaborn` to match the "
+        "spec exactly (it asks for a seaborn heatmap)."
+    )
+
+try:
+    from . import config
+except ImportError:
+    import config
+
+#match the CATEGORY_1 name used _
+CATEGORY_1 = getattr(config, "CATEGORY_1", "category")
