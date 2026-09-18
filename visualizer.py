@@ -1,3 +1,13 @@
+''' TO ADD FOR OTHER PHASES:
+#compute_grouped:
+df.groupby(CATEGORY_1)->df.groupby(CATEGORY_1, dropna=False)
+
+#compute_grouped_two:
+df.groupby([CATEGORY_1, CATEGORY_2])->df.groupby([CATEGORY_1, CATEGORY_2], dropna=False)
+
+#compute_pivot — inside pd.pivot_table(...), add a new kwarg:
+        margins_name="All",+ dropna=False,)
+        '''
 
 from __future__ import annotations
 
@@ -9,18 +19,21 @@ try:
 except ImportError:
     import config
 
-CATEGORY_1 = getattr(config, "CATEGORY_1", "category")
-CATEGORY_2 = getattr(config, "CATEGORY_2", "subcategory")
-MEASURE = getattr(config, "NUM_MEASURE", "value")
-#to fix: catgery name s 
+CATEGORY_1 = getattr(config, "CATEGORY_1", "countryorigin_iso3")
+CATEGORY_2 = getattr(config, "CATEGORY_2", "tq")
+MEASURE = getattr(config, "NUM_MEASURE", "dutiablevaluephp")
 
 def _safe_load_csv() -> pd.DataFrame:
-
     try:
-        from . import loader
-    except ImportError:
-        import loader
-    return loader.load_csv()
+        try:
+            from . import loader
+        except ImportError:
+            import loader
+        return loader.load_csv()
+    except (SyntaxError, ImportError) as exc:
+        print(f"[stats.py] loader.py unavailable ({exc}); "
+              f"falling back to plain pd.read_csv({config.DATA_PATH!r})")
+        return pd.read_csv(config.DATA_PATH)
 
 def compute_grouped(df: pd.DataFrame) -> pd.DataFrame:
     grouped = (
@@ -124,7 +137,7 @@ except ImportError:
     import config
 
 #match the CATEGORY_1 name used _
-CATEGORY_1 = getattr(config, "CATEGORY_1", "category")
+CATEGORY_1 = getattr(config, "CATEGORY_1", "countryorigin_iso3")
 
 # bar--
 def plot_bar(top10: pd.DataFrame, output_dir: str | None = None) -> str:
@@ -217,3 +230,12 @@ except ImportError:
 
 def main() -> None:
     #dfs 
+
+    
+print(" - grouped.csv, grouped_two.csv, pivot.csv, top10.csv")
+print(f" - {charts['bar']}")
+print(f" - {charts['heatmap']}")
+
+
+if __name__ == "__main__":
+    main()
