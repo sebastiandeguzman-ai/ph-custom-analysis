@@ -22,13 +22,28 @@ def main():
     
     pivot_interior_sum = pivot_df.drop(index="All", columns="All", errors="ignore").sum().sum()
 
-    print("\n=== Phase 3: Running Validation Checks ===")
+    print("\n=== Phase 4: Reshaping Data ===")
+    pivot_df = processor.generate_pivot(processed_df)
+    processor.generate_top10(grouped_df)
+
+    selected_rows = raw_rows
+    grouped_row_sum = grouped_df["row_count"].sum()
+
+    if "All" in pivot_df.index and "All" in pivot_df.columns:
+        pivot_interior_sum = (
+            pivot_df.drop(index="All", columns="All").fillna(0).values.sum()
+        )
+    else:
+        pivot_interior_sum = pivot_df.fillna(0).values.sum()
+
+    print("\n=== Phase 4: Running Validations ===")
     validator.run_validations(
         raw_rows=raw_rows,
         raw_sum=raw_sum,
         selected_rows=selected_rows,
         grouped_row_sum=grouped_row_sum,
-        pivot_interior_sum=pivot_interior_sum
+        pivot_interior_sum=pivot_interior_sum,
+    )
 
 if __name__ == "__main__":
     main()
