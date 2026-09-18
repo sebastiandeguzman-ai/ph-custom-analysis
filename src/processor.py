@@ -34,3 +34,12 @@ def add_high_value_flag(df: pd.DataFrame) -> pd.DataFrame:
     threshold = result["dutiablevaluephp"].quantile(0.75)
     result["high_value_flag"] = result["dutiablevaluephp"] > threshold
     return result
+
+def grouped(df: pd.DataFrame) -> pd.DataFrame:
+    grouped = df.groupby("countryorigin_iso3", dropna=False).agg(
+        row_count=("countryorigin_iso3", "size"),
+        valid_measure_count=("dutiablevaluephp", "count"),
+        measure_sum=("dutiablevaluephp", "sum"),
+        measure_mean=("dutiablevaluephp", "mean"),
+    ).reset_index()
+    return grouped
