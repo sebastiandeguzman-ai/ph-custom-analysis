@@ -1,4 +1,4 @@
-from src import loader, processor
+from src import loader, processor, validator
 
 def main():
     print("=== Phase 1: Loading Data ===")
