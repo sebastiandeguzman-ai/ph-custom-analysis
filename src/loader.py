@@ -17,31 +17,24 @@ except ImportError:
 class LoaderError(Exception):
     """Base class for all loader-related failures."""
 
-
 class FileNotFoundInProjectError(LoaderError):
     """Raised when the expected data file is missing on disk."""
-
 
 class ChecksumMismatchError(LoaderError):
     """Raised when the SHA-256 of the file does not match the expected value."""
 
-
 class SchemaValidationError(LoaderError):
     """Raised when required columns are missing from the loaded data."""
 
-
 class RowCountMismatchError(LoaderError):
     """Raised when the number of raw rows differs from the expected count."""
-
 
 class SumValidationError(LoaderError):
     """Raised when the sum of the numeric measure column drifts from the
     expected reference value beyond the allowed tolerance."""
 
-
 class DataQualityError(LoaderError):
     """Raised for edge-case data quality problems (nulls, dupes, negatives)."""
-
 
 @dataclass
 class AuditLogger:
@@ -55,7 +48,6 @@ class AuditLogger:
         os.makedirs(self.log_dir, exist_ok=True)
         self.log_path = os.path.join(self.log_dir, self.log_name)
         self.summary_path = os.path.join(self.log_dir, self.summary_name)
-
 
     def _write(self, level: str, message: str, **context) -> None:
         timestamp = datetime.now(timezone.utc).isoformat()
@@ -102,7 +94,6 @@ class AuditLogger:
     def has_errors(self) -> bool:
         return any(r["level"] in ("ERROR", "CRITICAL") for r in self._records)
 
-
 def compute_sha256(path: str, chunk_size: int = 8192) -> str:
     """Stream the file in chunks and return its hex-digest SHA-256 hash."""
     digest = hashlib.sha256()
@@ -134,13 +125,11 @@ def verify_checksum(
         )
     return actual_hash
 
-
 def _check_file_exists(path: str, logger: AuditLogger) -> None:
     exists = os.path.isfile(path)
     logger.check(f"Data file exists at '{path}'", exists)
     if not exists:
         raise FileNotFoundInProjectError(f"Expected data file not found: {path}")
-
 
 def _check_schema(df: pd.DataFrame, required_columns: set, logger: AuditLogger) -> None:
     missing = required_columns - set(df.columns)
@@ -152,7 +141,6 @@ def _check_schema(df: pd.DataFrame, required_columns: set, logger: AuditLogger) 
     )
     if missing:
         raise SchemaValidationError(f"Missing required columns: {sorted(missing)}")
-
 
 def _check_row_count(df: pd.DataFrame, expected_rows: int, logger: AuditLogger) -> None:
     actual_rows = len(df)
@@ -167,7 +155,6 @@ def _check_row_count(df: pd.DataFrame, expected_rows: int, logger: AuditLogger) 
         raise RowCountMismatchError(
             f"Row count mismatch: expected {expected_rows}, got {actual_rows}"
         )
-
 
 def _check_numeric_sum(
     df: pd.DataFrame,
@@ -194,7 +181,6 @@ def _check_numeric_sum(
             f"got {actual_sum} (diff={diff}, tolerance={tolerance})"
         )
 
-
 def _check_nulls(df: pd.DataFrame, columns: set, logger: AuditLogger) -> None:
     null_counts = {col: int(df[col].isna().sum()) for col in columns}
     total_nulls = sum(null_counts.values())
@@ -204,7 +190,6 @@ def _check_nulls(df: pd.DataFrame, columns: set, logger: AuditLogger) -> None:
         null_counts=null_counts,
     )
 
-
 def _check_duplicates(df: pd.DataFrame, logger: AuditLogger) -> int:
     dupe_count = int(df.duplicated().sum())
     logger.check(
@@ -213,7 +198,6 @@ def _check_duplicates(df: pd.DataFrame, logger: AuditLogger) -> int:
         duplicate_rows=dupe_count,
     )
     return dupe_count
-
 
 def _check_negative_values(df: pd.DataFrame, column: str, logger: AuditLogger) -> int:
     numeric = pd.to_numeric(df[column], errors="coerce")
@@ -225,7 +209,6 @@ def _check_negative_values(df: pd.DataFrame, column: str, logger: AuditLogger) -
     )
     return negative_count
 
-
 def _check_empty_dataframe(df: pd.DataFrame, logger: AuditLogger) -> None:
     is_empty = df.empty
     logger.check("DataFrame is not empty", not is_empty)
@@ -236,3 +219,49 @@ def _check_empty_dataframe(df: pd.DataFrame, logger: AuditLogger) -> None:
         with open(self.summary_path, "w", encoding="utf-8") as f:
             json.dump(self._records, f, indent=2)
         return self.summary_path
+
+def load_csv(
+    path: str = config.DATA_PATH,
+    expected_hash: str = config.EXPECTED_SHA256,
+    expected_rows: int = config.EXPECTED_RAW_ROWS,
+    expected_sum: float = config.EXPECTED_RAW_SUM,
+    required_columns: set = config.REQUIRED_COLUMNS,
+    numeric_column: str = config.NUM_MEASURE,
+    logger: Optional[AuditLogger] = None,
+    strict: bool = True,
+) -> pd.DataFrame:
+    logger = logger or AuditLogger()
+    logger.info("Starting dataset load", path=path)
+
+    try:
+        _check_file_exists(path, logger)
+        verify_checksum(path, expected_hash, logger)
+
+        logger.info("Reading CSV into memory")
+        df = pd.read_csv(path)
+
+        _check_empty_dataframe(df, logger)
+        _check_schema(df, required_columns, logger)
+        _check_row_count(df, expected_rows, logger)
+        _check_numeric_sum(df, numeric_column, expected_sum, logger)
+
+        _check_nulls(df, required_columns, logger)
+        _check_duplicates(df, logger)
+        _check_negative_values(df, numeric_column, logger)
+
+        logger.info("Dataset load completed successfully", rows=len(df), columns=len(df.columns))
+        return df
+
+    except LoaderError as exc:
+        logger.critical(f"Load aborted: {exc}")
+        if strict:
+            raise
+        return pd.DataFrame()
+    finally:
+        logger.save_summary()
+
+
+if __name__ == "__main__":
+    audit_logger = AuditLogger()
+    dataframe = load_csv(logger=audit_logger)
+    print(dataframe.head())
