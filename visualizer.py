@@ -229,13 +229,39 @@ except ImportError:
 
 
 def main() -> None:
-    #dfs 
+    df = loader.load_csv()
 
-    
-print(" - grouped.csv, grouped_two.csv, pivot.csv, top10.csv")
-print(f" - {charts['bar']}")
-print(f" - {charts['heatmap']}")
+    #filter
+    filtered = transform.filter_by_quarter_and_origin(df, QUARTER, COUNTRY_ISO3)
+    filtered = transform.add_duty_per_weight(filtered)
+    filtered = transform.add_high_value_flag(filtered)
 
+    #aggr
+    grouped_df = aggregate.grouped(filtered)
+    grouped_two_df = aggregate.grouped_two(filtered)
+    aggregate.export_grouped_tables(grouped_df, grouped_two_df, output_dir=config.OUTPUT_DIR)
+
+    #validate pivot
+    pivot_df = validate.generate_pivot(filtered)
+    top10_df = validate.generate_top10(grouped_df)
+    validate.run_validations(
+        raw_rows=len(df),
+        raw_sum=float(df[config.NUM_MEASURE].sum()) if hasattr(config, "NUM_MEASURE") else None,
+        selected_rows=len(filtered),
+        grouped_row_sum=int(grouped_df["row_count"].sum()),
+        pivot_interior_sum=float(
+            pivot_df.drop(index="All", errors="ignore").drop(columns="All", errors="ignore").to_numpy().sum()
+        ),
+    )
+
+    #charts--
+    tables = {"top10": top10_df, "pivot": pivot_df}
+    charts = visualizer.run(tables, output_dir=config.OUTPUT_DIR)
+
+    print(f"Pipeline complete: {config.OUTPUT_DIR}")
+    print(" - grouped.csv, grouped_two.csv, pivot.csv, top10.csv, validation.csv")
+    print(f" - {charts['bar']}")
+    print(f" - {charts['heatmap']}")
 
 if __name__ == "__main__":
     main()
