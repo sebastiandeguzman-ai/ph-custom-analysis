@@ -28,3 +28,9 @@ def add_duty_per_weight(df: pd.DataFrame) -> pd.DataFrame:
     result = df.copy()
     result["duty_per_weight"] = result["dutiestaxes"] / result["q"].replace(0, pd.NA)
     return result
+
+def add_high_value_flag(df: pd.DataFrame) -> pd.DataFrame:
+    result = df.copy()
+    threshold = result["dutiablevaluephp"].quantile(0.75)
+    result["high_value_flag"] = result["dutiablevaluephp"] > threshold
+    return result
