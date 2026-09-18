@@ -52,3 +52,8 @@ def grouped_two(df: pd.DataFrame) -> pd.DataFrame:
         measure_sum=("dutiablevaluephp", "sum"),
     ).reset_index()
     return grouped
+
+def export_grouped_tables(grouped: pd.DataFrame, grouped_two: pd.DataFrame, output_dir: str = "outputs") -> None:
+    os.makedirs(output_dir, exist_ok=True)
+    grouped.to_csv(os.path.join(output_dir, "grouped.csv"), index=False)
+    grouped_two.to_csv(os.path.join(output_dir, "grouped_two.csv"), index=False)
