@@ -1,11 +1,10 @@
-from src import loader, processor, validator
+from src import loader, processor, validator, visualizer
 
 
 def main():
     print("=== Phase 1: Loading Data ===")
     df = loader.load_csv()
     
-    # 1. Capture raw metrics immediately after loading
     raw_rows = len(df)
     raw_sum = df["dutiablevaluephp"].sum()
     print("Loader operational. Shape:", df.shape)
@@ -22,7 +21,6 @@ def main():
     pivot_df = processor.generate_pivot(processed_df)
     top10_df = processor.generate_top10(grouped_df)
 
-    # 2. Calculate validation inputs
     selected_rows = raw_rows
     grouped_row_sum = grouped_df["row_count"].sum()
 
@@ -44,16 +42,16 @@ def main():
     )
 
     print("\n=== Phase 4: Generating Visualizations ===")
-    tables = {"top10": top10_df, "pivot": pivot_df}
-    charts = visualizer.run(tables)
+    bar_path = visualizer.plot_bar(top10_df, "outputs")
+    heatmap_path = visualizer.plot_heatmap(pivot_df, "outputs")
 
     print("\nPipeline execution complete!")
     print("Outputs generated in outputs/:")
     print(
         " - grouped.csv, grouped_two.csv, pivot.csv, top10.csv, validation.csv"
     )
-    print(f" - {charts['bar']}")
-    print(f" - {charts['heatmap']}")
+    print(f" - {bar_path}")
+    print(f" - {heatmap_path}")
 
 
 if __name__ == "__main__":
