@@ -18,7 +18,7 @@ def main():
     processor.export_grouped_tables(grouped_df, grouped_two_df)
     print("Phase 2 complete. Shape:", processed_df.shape)
 
-    print("\n=== Phase 4: Reshaping Data ===")
+    print("\n=== Phase 3: Reshaping Data ===")
     pivot_df = processor.generate_pivot(processed_df)
     top10_df = processor.generate_top10(grouped_df)
 
@@ -34,7 +34,7 @@ def main():
     else:
         pivot_interior_sum = pivot_df.fillna(0).values.sum()
 
-    print("\n=== Phase 4: Running Validations ===")
+    print("\n=== Phase 3: Running Validations ===")
     validator.run_validations(
         raw_rows=raw_rows,
         raw_sum=raw_sum,
@@ -42,6 +42,18 @@ def main():
         grouped_row_sum=grouped_row_sum,
         pivot_interior_sum=pivot_interior_sum,
     )
+
+    print("\n=== Phase 4: Generating Visualizations ===")
+    tables = {"top10": top10_df, "pivot": pivot_df}
+    charts = visualizer.run(tables)
+
+    print("\nPipeline execution complete!")
+    print("Outputs generated in outputs/:")
+    print(
+        " - grouped.csv, grouped_two.csv, pivot.csv, top10.csv, validation.csv"
+    )
+    print(f" - {charts['bar']}")
+    print(f" - {charts['heatmap']}")
 
 
 if __name__ == "__main__":
