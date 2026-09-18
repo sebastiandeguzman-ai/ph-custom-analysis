@@ -93,7 +93,144 @@ class AuditLogger:
         level = "info" if passed else "error"
         status = "PASSED" if passed else "FAILED"
         self._write(level, f"CHECK {status}: {description}", **context)
+        
+    @property
+    def records(self) -> list:
+        return list(self._records)
 
+    @property
+    def has_errors(self) -> bool:
+        return any(r["level"] in ("ERROR", "CRITICAL") for r in self._records)
+
+
+def compute_sha256(path: str, chunk_size: int = 8192) -> str:
+    """Stream the file in chunks and return its hex-digest SHA-256 hash."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+def verify_checksum(
+    path: str,
+    expected_hash: str,
+    logger: Optional[AuditLogger] = None,
+) -> str:
+    actual_hash = compute_sha256(path)
+    passed = actual_hash.lower() == expected_hash.lower()
+
+    if logger:
+        logger.check(
+            "SHA-256 checksum matches expected reference value",
+            passed,
+            expected=expected_hash,
+            actual=actual_hash,
+        )
+
+    if not passed:
+        raise ChecksumMismatchError(
+            f"Checksum mismatch for '{path}': expected {expected_hash}, "
+            f"got {actual_hash}"
+        )
+    return actual_hash
+
+
+def _check_file_exists(path: str, logger: AuditLogger) -> None:
+    exists = os.path.isfile(path)
+    logger.check(f"Data file exists at '{path}'", exists)
+    if not exists:
+        raise FileNotFoundInProjectError(f"Expected data file not found: {path}")
+
+
+def _check_schema(df: pd.DataFrame, required_columns: set, logger: AuditLogger) -> None:
+    missing = required_columns - set(df.columns)
+    logger.check(
+        "Required columns present",
+        len(missing) == 0,
+        required=sorted(required_columns),
+        missing=sorted(missing),
+    )
+    if missing:
+        raise SchemaValidationError(f"Missing required columns: {sorted(missing)}")
+
+
+def _check_row_count(df: pd.DataFrame, expected_rows: int, logger: AuditLogger) -> None:
+    actual_rows = len(df)
+    passed = actual_rows == expected_rows
+    logger.check(
+        "Row count matches expected reference value",
+        passed,
+        expected=expected_rows,
+        actual=actual_rows,
+    )
+    if not passed:
+        raise RowCountMismatchError(
+            f"Row count mismatch: expected {expected_rows}, got {actual_rows}"
+        )
+
+
+def _check_numeric_sum(
+    df: pd.DataFrame,
+    column: str,
+    expected_sum: float,
+    logger: AuditLogger,
+    rel_tolerance: float = 1e-6,
+) -> None:
+    actual_sum = float(pd.to_numeric(df[column], errors="coerce").sum())
+    diff = abs(actual_sum - expected_sum)
+    tolerance = abs(expected_sum) * rel_tolerance
+    passed = diff <= tolerance
+    logger.check(
+        f"Sum of '{column}' matches expected reference value",
+        passed,
+        expected=expected_sum,
+        actual=actual_sum,
+        diff=diff,
+        tolerance=tolerance,
+    )
+    if not passed:
+        raise SumValidationError(
+            f"Sum mismatch for '{column}': expected {expected_sum}, "
+            f"got {actual_sum} (diff={diff}, tolerance={tolerance})"
+        )
+
+
+def _check_nulls(df: pd.DataFrame, columns: set, logger: AuditLogger) -> None:
+    null_counts = {col: int(df[col].isna().sum()) for col in columns}
+    total_nulls = sum(null_counts.values())
+    logger.check(
+        "No nulls in required columns",
+        total_nulls == 0,
+        null_counts=null_counts,
+    )
+
+
+def _check_duplicates(df: pd.DataFrame, logger: AuditLogger) -> int:
+    dupe_count = int(df.duplicated().sum())
+    logger.check(
+        "No fully duplicated rows",
+        dupe_count == 0,
+        duplicate_rows=dupe_count,
+    )
+    return dupe_count
+
+
+def _check_negative_values(df: pd.DataFrame, column: str, logger: AuditLogger) -> int:
+    numeric = pd.to_numeric(df[column], errors="coerce")
+    negative_count = int((numeric < 0).sum())
+    logger.check(
+        f"No negative values in '{column}'",
+        negative_count == 0,
+        negative_count=negative_count,
+    )
+    return negative_count
+
+
+def _check_empty_dataframe(df: pd.DataFrame, logger: AuditLogger) -> None:
+    is_empty = df.empty
+    logger.check("DataFrame is not empty", not is_empty)
+    if is_empty:
+        raise DataQualityError("Loaded DataFrame is empty."
 
     def save_summary(self) -> str:
         with open(self.summary_path, "w", encoding="utf-8") as f:
