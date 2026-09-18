@@ -112,7 +112,7 @@ if __name__ == "__main__":
     print(tables["top10"])
 
 
-
+from __future__ import annotations
 
 import os
 
@@ -217,8 +217,6 @@ if __name__ == "__main__":
     print("Standalone test charts written to /tmp/phase5_test")
 
 
-
-from __future__ import annotations
 
 try:
     from . import config, stats, visualizer
