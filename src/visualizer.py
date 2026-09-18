@@ -215,8 +215,6 @@ if __name__ == "__main__":
 
 
 
-from __future__ import annotations
-
 try:
     from . import config, stats, visualizer
 except ImportError:
