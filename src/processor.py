@@ -23,3 +23,8 @@ def filter_by_quarter_and_origin(
         raise ValueError(message)
 
     return filtered
+
+def add_duty_per_weight(df: pd.DataFrame) -> pd.DataFrame:
+    result = df.copy()
+    result["duty_per_weight"] = result["dutiestaxes"] / result["q"].replace(0, pd.NA)
+    return result
