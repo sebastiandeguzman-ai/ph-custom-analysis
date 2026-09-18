@@ -260,7 +260,6 @@ def load_csv(
     finally:
         logger.save_summary()
 
-
 if __name__ == "__main__":
     audit_logger = AuditLogger()
     dataframe = load_csv(logger=audit_logger)
