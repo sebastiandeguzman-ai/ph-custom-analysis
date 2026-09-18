@@ -43,3 +43,12 @@ def grouped(df: pd.DataFrame) -> pd.DataFrame:
         measure_mean=("dutiablevaluephp", "mean"),
     ).reset_index()
     return grouped
+
+def grouped_two(df: pd.DataFrame) -> pd.DataFrame:
+    grouped = df.groupby(
+        ["countryorigin_iso3", "tq"], dropna=False
+    ).agg(
+        row_count=("countryorigin_iso3", "size"),
+        measure_sum=("dutiablevaluephp", "sum"),
+    ).reset_index()
+    return grouped
