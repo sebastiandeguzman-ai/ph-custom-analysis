@@ -178,3 +178,42 @@ def plot_heatmap(pivot: pd.DataFrame, output_dir: str | None = None) -> str:
         print(f"[visualizer.py] Failed to render heatmap.png: {exc}")
         raise
     return out_path
+
+#orchestra--
+def run(tables: dict, output_dir: str | None = None) -> dict:
+    bar_path = plot_bar(tables["top10"], output_dir)
+    heatmap_path = plot_heatmap(tables["pivot"], output_dir)
+    return {"bar": bar_path, "heatmap": heatmap_path}
+
+
+if __name__ == "__main__":
+    import numpy as np
+
+    rng = np.random.default_rng(0)
+    fake_top10 = pd.DataFrame({
+        CATEGORY_1: [f"cat{i}" for i in range(6)],
+        "measure_sum": rng.integers(10, 200, size=6),
+    })
+    fake_pivot = pd.DataFrame(
+        rng.integers(0, 100, size=(3, 3)),
+        index=["A", "B", "All"],
+        columns=["x", "y", "All"],
+    )
+    plot_bar(fake_top10, output_dir="/tmp/phase5_test")
+    plot_heatmap(fake_pivot, output_dir="/tmp/phase5_test")
+    print("Standalone test charts written to /tmp/phase5_test")
+
+
+
+from __future__ import annotations
+
+try:
+    from . import config, stats, visualizer
+except ImportError:
+    import config
+    import stats
+    import visualizer
+
+
+def main() -> None:
+    #dfs 
