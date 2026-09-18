@@ -85,6 +85,11 @@ class AuditLogger:
         level = "info" if passed else "error"
         status = "PASSED" if passed else "FAILED"
         self._write(level, f"CHECK {status}: {description}", **context)
+
+    def save_summary(self) -> str:
+        with open(self.summary_path, "w", encoding="utf-8") as f:
+            json.dump(self._records, f, indent=2)
+        return self.summary_path
         
     @property
     def records(self) -> list:
@@ -213,12 +218,7 @@ def _check_empty_dataframe(df: pd.DataFrame, logger: AuditLogger) -> None:
     is_empty = df.empty
     logger.check("DataFrame is not empty", not is_empty)
     if is_empty:
-        raise DataQualityError("Loaded DataFrame is empty."
-
-    def save_summary(self) -> str:
-        with open(self.summary_path, "w", encoding="utf-8") as f:
-            json.dump(self._records, f, indent=2)
-        return self.summary_path
+        raise DataQualityError("Loaded DataFrame is empty.")
 
 def load_csv(
     path: str = config.DATA_PATH,
@@ -238,7 +238,10 @@ def load_csv(
         verify_checksum(path, expected_hash, logger)
 
         logger.info("Reading CSV into memory")
-        df = pd.read_csv(path)
+        try:
+            df = pd.read_csv(path, encoding="utf-8")
+        except UnicodeDecodeError:
+            df = pd.read_csv(path, encoding="latin1")  # Fallback for Windows/ISO-8859 encoded files
 
         _check_empty_dataframe(df, logger)
         _check_schema(df, required_columns, logger)
