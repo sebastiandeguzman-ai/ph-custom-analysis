@@ -125,3 +125,56 @@ except ImportError:
 
 #match the CATEGORY_1 name used _
 CATEGORY_1 = getattr(config, "CATEGORY_1", "category")
+
+# bar--
+def plot_bar(top10: pd.DataFrame, output_dir: str | None = None) -> str:
+    """Matplotlib bar chart of top10.csv values -> bar.png"""
+    output_dir = output_dir or config.OUTPUT_DIR
+    os.makedirs(output_dir, exist_ok=True)
+    out_path = os.path.join(output_dir, "bar.png")
+
+    try:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.bar(top10[CATEGORY_1].astype(str), top10["measure_sum"])
+        ax.set_xlabel(CATEGORY_1)
+        ax.set_ylabel("measure_sum")
+        ax.set_title("Top 10 groups by measure sum")
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+        fig.tight_layout()
+        fig.savefig(out_path)
+        plt.close(fig)
+    except Exception as exc:
+        print(f"[visualizer.py] Failed to render bar.png: {exc}")
+        raise
+    return out_path
+
+
+
+# heatmap ---
+
+def plot_heatmap(pivot: pd.DataFrame, output_dir: str | None = None) -> str:
+    output_dir = output_dir or config.OUTPUT_DIR
+    os.makedirs(output_dir, exist_ok=True)
+    out_path = os.path.join(output_dir, "heatmap.png")
+
+    data = pivot.drop(index="All", errors="ignore").drop(columns="All", errors="ignore")
+
+    try:
+        fig, ax = plt.subplots(figsize=(10, 8))
+        if sns is not None:
+            sns.heatmap(data, annot=True, fmt=".0f", cmap="viridis", ax=ax)
+        else:
+            im = ax.imshow(data.values, cmap="viridis")
+            ax.set_xticks(range(len(data.columns)))
+            ax.set_xticklabels(data.columns, rotation=45, ha="right")
+            ax.set_yticks(range(len(data.index)))
+            ax.set_yticklabels(data.index)
+            fig.colorbar(im, ax=ax)
+        ax.set_title("Measure sum by category (margins excluded)")
+        fig.tight_layout()
+        fig.savefig(out_path)
+        plt.close(fig)
+    except Exception as exc:
+        print(f"[visualizer.py] Failed to render heatmap.png: {exc}")
+        raise
+    return out_path
