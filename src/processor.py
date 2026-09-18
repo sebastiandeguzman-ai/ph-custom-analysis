@@ -13,3 +13,13 @@ def filter_by_quarter_and_origin(
         & (df["countryorigin_iso3"] == country_iso3)
     )
     filtered = df.loc[mask]
+    
+    if filtered.empty:
+        message = (
+            f"No records found for quarter='{quarter}' "
+            f"and countryorigin_iso3='{country_iso3}'."
+        )
+        print(message, file=sys.stderr)
+        raise ValueError(message)
+
+    return filtered
