@@ -47,9 +47,18 @@ pip install -r requirements.txt
 1. Go to the [BetterGov.PH](https://huggingface.co/datasets/bettergovph/open-customs-data/tree/main/yearly/csv) page and download `2015.csv` (the folder contains other years too, so make sure you pick 2015).
 2. Place it in the `data/` folder so the path is `data/2015.csv`.
 
+Alternatively, download it straight into `data/` from the terminal:
+```bash
+curl -L -o data/2015.csv "https://huggingface.co/datasets/bettergovph/open-customs-data/resolve/main/yearly/csv/2015.csv?download=true"
+```
+Do not open or re-save the file in Excel, Numbers, or a text editor, since that changes its contents and the checksum will no longer match.
+
 You don't need to verify the file by hand. The pipeline checks the SHA-256 hash itself and stops if it doesn't match. To check manually anyway:
 ```bash
-# macOS / Linux
+# macOS
+shasum -a 256 data/2015.csv
+
+# Linux
 sha256sum data/2015.csv
 
 # Windows (PowerShell)
