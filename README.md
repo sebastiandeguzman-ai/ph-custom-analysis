@@ -44,7 +44,7 @@ pip install -r requirements.txt
 ```
 
 ### 4. Download the dataset
-1. Download `2015.csv` from BetterGov.PH.
+1. Go to the [BetterGov.PH](https://huggingface.co/datasets/bettergovph/open-customs-data/tree/main/yearly/csv) page and download `2015.csv` (the folder contains other years too, so make sure you pick 2015).
 2. Place it in the `data/` folder so the path is `data/2015.csv`.
 
 You don't need to verify the file by hand. The pipeline checks the SHA-256 hash itself and stops if it doesn't match. To check manually anyway:
